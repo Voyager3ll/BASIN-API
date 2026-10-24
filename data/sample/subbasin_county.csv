@@ -1,0 +1,17 @@
+sub,county_fips,county_name,state,area_fraction
+1,19001,Sample County A,IA,1.0
+2,19001,Sample County A,IA,1.0
+3,19003,Sample County B,IA,0.6
+3,19005,Sample County C,IA,0.4
+4,19003,Sample County B,IA,1.0
+5,19005,Sample County C,IA,1.0
+6,19005,Sample County C,IA,0.6
+6,27001,Sample County D,MN,0.4
+7,27001,Sample County D,MN,1.0
+8,27001,Sample County D,MN,1.0
+9,27003,Sample County E,MN,0.6
+9,55001,Sample County F,WI,0.4
+10,27003,Sample County E,MN,1.0
+11,55001,Sample County F,WI,1.0
+12,55001,Sample County F,WI,0.6
+12,19001,Sample County A,IA,0.4

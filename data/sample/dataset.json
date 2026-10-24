@@ -1,0 +1,7 @@
+{
+  "name": "sample",
+  "description": "Synthetic 12-subbasin SWAT2012 run for development. Not real model output.",
+  "swat_version": "2012",
+  "outlet_reach": 12,
+  "synthetic": true
+}
