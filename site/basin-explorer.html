@@ -1,0 +1,266 @@
+<title>BASIN Scenario Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: builder rail on the left, results stacked right; one column under 900px. Palette drawn from river water and tilled soil. */
+:root{
+  --bg:#f3f5f4; --panel:#ffffff; --ink:#15211f; --muted:#5b6b67; --line:#d8dfdc;
+  --accent:#0b5f73; --accent-soft:#d7ebef; --soil:#8a5a2b; --soil-soft:#f1e5d6;
+  --good:#2f7d4a; --warn:#b07a12; --bad:#b2402f; --severe:#7c1d3a;
+  --f-display:"Archivo",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1715; --panel:#16201e; --ink:#e3ebe8; --muted:#93a39f; --line:#2a3734;
+  --accent:#5cb8cc; --accent-soft:#163a42; --soil:#d39a62; --soil-soft:#3a2a1b;
+  --good:#6cc28a; --warn:#e0b04a; --bad:#ec7a68; --severe:#e7849f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1715; --panel:#16201e; --ink:#e3ebe8; --muted:#93a39f; --line:#2a3734;
+  --accent:#5cb8cc; --accent-soft:#163a42; --soil:#d39a62; --soil-soft:#3a2a1b;
+  --good:#6cc28a; --warn:#e0b04a; --bad:#ec7a68; --severe:#e7849f; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(24px,4vw,34px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:2px 0 0;max-width:62ch}
+.flag{font-family:var(--f-mono);font-size:12px;background:var(--soil-soft);color:var(--soil);padding:4px 8px;border-radius:3px}
+.grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:20px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+h2{font-family:var(--f-display);font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px;padding:5px 10px}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.prac{border-top:1px solid var(--line);padding:10px 0;display:grid;gap:6px}
+.prac-top{display:flex;align-items:center;gap:8px}
+.prac-top label{flex:1;font-weight:600;cursor:pointer}
+.eff{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.slider{display:flex;align-items:center;gap:8px}
+.slider input{flex:1;accent-color:var(--accent)}
+.slider output{font-family:var(--f-mono);width:44px;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:12px;padding:2px 8px;border-radius:12px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.hint{font-size:12px;color:var(--muted)}
+.prac.off .slider,.prac.off .chips,.prac.off .hint{display:none}
+details{border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
+summary{cursor:pointer;font-weight:600}
+.param{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin-top:8px}
+.param input{font:inherit;font-family:var(--f-mono);padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box}
+.results{display:grid;gap:20px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;gap:2px}
+.kpi .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kpi .v{font-family:var(--f-display);font-weight:700;font-size:26px;font-variant-numeric:tabular-nums}
+.kpi .d{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:10px;color:#fff}
+.risk-low{background:var(--good)}.risk-moderate{background:var(--warn)}.risk-high{background:var(--bad)}.risk-severe{background:var(--severe)}
+.meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%;background:var(--accent)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+td.bar{width:30%;min-width:120px}
+.hbar{position:relative;height:10px;background:var(--accent-soft);border-radius:2px}
+.hbar i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:2px}
+svg text{fill:var(--muted);font-family:var(--f-mono);font-size:10px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:6px}
+.legend b{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px}
+.api{font-family:var(--f-mono);font-size:12.5px}
+.api td{white-space:normal}
+.api td:first-child{color:var(--accent);font-weight:500;white-space:nowrap}
+footer{color:var(--muted);font-size:12px;max-width:80ch}
+a{color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.meter i,.hbar i{transition:width .25s}}
+</style>
+<div class="wrap">
+<header>
+  <div>
+    <h1>BASIN <span>Scenario Explorer</span></h1>
+    <p class="sub">Choose conservation practices and adoption rates, and see how SWAT HRU loads add up to county, subbasin and basin-outlet nitrogen and phosphorus, and what that means for Gulf hypoxia.</p>
+  </div>
+  <span class="flag">Synthetic sample data · placeholder coefficients</span>
+</header>
+
+<div class="grid">
+<aside class="panel" aria-label="Scenario builder">
+  <h2>Scenario</h2>
+  <div class="presets" id="presets"></div>
+  <div id="practices"></div>
+  <details>
+    <summary>Hypoxia model settings</summary>
+    <div class="param"><label for="p-area">Reference hypoxic area (km²)</label><input id="p-area" type="number" value="14000" step="100"></div>
+    <div class="param"><label for="p-share">UMRB share of Gulf May nitrate</label><input id="p-share" type="number" value="0.40" step="0.01" min="0" max="1"></div>
+    <div class="param"><label for="p-el">Area elasticity</label><input id="p-el" type="number" value="1.0" step="0.1" min="0"></div>
+  </details>
+</aside>
+
+<main class="results">
+  <section class="kpis" id="kpis" aria-label="Headline results"></section>
+
+  <section class="panel">
+    <h2>Outlet May–June nitrate, monthly</h2>
+    <div class="legend"><span><b style="background:var(--muted)"></b>Baseline</span><span><b style="background:var(--accent)"></b>Scenario</span><span>NO₃+NO₂ at reach <span id="reach"></span>, tonnes per month</span></div>
+    <div class="scroll"><svg id="ts" viewBox="0 0 720 200" width="100%" role="img" aria-label="Monthly outlet nitrate, baseline and scenario"></svg></div>
+  </section>
+
+  <section class="panel">
+    <h2>By county</h2>
+    <div class="scroll"><table id="county"></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>By subbasin</h2>
+    <div class="scroll"><table id="subbasin"></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>API endpoints behind this page</h2>
+    <div class="scroll"><table class="api">
+      <tr><td>GET /datasets</td><td>Loaded SWAT runs and their outlet loads</td></tr>
+      <tr><td>GET /practices</td><td>Practice catalog: efficiencies, eligible land uses, cost</td></tr>
+      <tr><td>GET /datasets/{name}/baseline/{level}</td><td>Baseline loads by hru, subbasin, county or basin</td></tr>
+      <tr><td>GET /datasets/{name}/outlet/timeseries</td><td>Monthly or yearly outlet reach series</td></tr>
+      <tr><td>POST /datasets/{name}/scenarios</td><td>Run a scenario like the one on this page</td></tr>
+      <tr><td>GET /hypoxia/params</td><td>Default hypoxia model settings</td></tr>
+    </table></div>
+  </section>
+
+  <footer>
+    This page runs the same scenario math as the BASIN API prototype, in your browser, on its synthetic 12-subbasin SWAT2012 sample (60 HRUs, 6 sample counties). Practice efficiencies are rounded Iowa Nutrient Reduction Strategy figures, and costs and hypoxia settings are placeholders. None of these numbers describe the real Upper Mississippi River Basin yet.
+    Code: <a href="https://github.com/Voyager3ll/basin-api" target="_blank" rel="noopener">github.com/Voyager3ll/basin-api</a>
+  </footer>
+</main>
+</div>
+
+<script>
+const D = {"cols":["hru","sub","lulc","county_fips","county_name","state","area_ha","tn_kg","tp_kg","dr_n","dr_p"],"units":[[1,1,"CORN","19001","Sample County A","IA",25978.9,593851.675,23744.715,0.6,0.5],[2,1,"SOYB","19001","Sample County A","IA",21877.0,403324.372,20170.594,0.6,0.5],[3,1,"PAST","19001","Sample County A","IA",8203.9,36449.928,2182.237,0.6,0.5],[4,1,"FRSD","19001","Sample County A","IA",6836.6,16626.611,834.065,0.6,0.5],[5,1,"URML","19001","Sample County A","IA",5469.2,51569.087,3872.194,0.6,0.5],[6,2,"CORN","19001","Sample County A","IA",31741.7,763292.66,30535.515,0.6,0.5],[7,2,"SOYB","19001","Sample County A","IA",26729.8,543015.887,27157.477,0.6,0.5],[8,2,"PAST","19001","Sample County A","IA",10023.7,38360.7,2305.451,0.6,0.5],[9,2,"FRSD","19001","Sample County A","IA",8353.1,14801.693,743.426,0.6,0.5],[10,2,"URML","19001","Sample County A","IA",6682.5,57148.74,4290.165,0.6,0.5],[11,3,"CORN","19003","Sample County B","IA",7203.0,188675.382,7548.744,0.6,0.5],[11,3,"CORN","19005","Sample County C","IA",4802.0,125783.588,5032.496,0.6,0.5],[12,3,"SOYB","19003","Sample County B","IA",6065.7,140912.277,7042.278,0.6,0.5],[12,3,"SOYB","19005","Sample County C","IA",4043.8,93941.518,4694.852,0.6,0.5],[13,3,"PAST","19003","Sample County B","IA",2274.66,12446.94,746.088,0.6,0.5],[13,3,"PAST","19005","Sample County C","IA",1516.44,8297.96,497.392,0.6,0.5],[14,3,"FRSD","19003","Sample County B","IA",1895.52,3360.757,168.701,0.6,0.5],[14,3,"FRSD","19005","Sample County C","IA",1263.68,2240.505,112.468,0.6,0.5],[15,3,"URML","19003","Sample County B","IA",1516.44,13619.148,1022.081,0.6,0.5],[15,3,"URML","19005","Sample County C","IA",1010.96,9079.432,681.387,0.6,0.5],[16,4,"CORN","19003","Sample County B","IA",29855.0,671856.92,26869.5,0.6,0.5],[17,4,"SOYB","19003","Sample County B","IA",25141.1,634159.106,31702.927,0.6,0.5],[18,4,"PAST","19003","Sample County B","IA",9427.9,56209.14,3375.188,0.6,0.5],[19,4,"FRSD","19003","Sample County B","IA",7856.6,15147.525,754.234,0.6,0.5],[20,4,"URML","19003","Sample County B","IA",6285.3,42507.484,3192.932,0.6,0.5],[21,5,"CORN","19005","Sample County C","IA",33224.5,958061.682,38307.849,0.6,0.5],[22,5,"SOYB","19005","Sample County C","IA",27978.5,450593.743,22550.671,0.6,0.5],[23,5,"PAST","19005","Sample County C","IA",10491.9,42387.276,2539.04,0.6,0.5],[24,5,"FRSD","19005","Sample County C","IA",8743.3,22522.741,1127.886,0.6,0.5],[25,5,"URML","19005","Sample County C","IA",6994.6,63343.098,4749.333,0.6,0.5],[26,6,"CORN","19005","Sample County C","IA",17881.5,650475.325,26035.464,0.6,0.5],[26,6,"CORN","27001","Sample County D","MN",11921.0,433650.217,17356.976,0.6,0.5],[27,6,"SOYB","19005","Sample County C","IA",15058.14,327906.057,16398.314,0.6,0.5],[27,6,"SOYB","27001","Sample County D","MN",10038.76,218604.038,10932.21,0.6,0.5],[28,6,"PAST","19005","Sample County C","IA",5646.78,38623.975,2315.18,0.6,0.5],[28,6,"PAST","27001","Sample County D","MN",3764.52,25749.317,1543.453,0.6,0.5],[29,6,"FRSD","19005","Sample County C","IA",4705.68,9298.424,465.862,0.6,0.5],[29,6,"FRSD","27001","Sample County D","MN",3137.12,6198.949,310.575,0.6,0.5],[30,6,"URML","19005","Sample County C","IA",3764.52,33097.66,2484.583,0.6,0.5],[30,6,"URML","27001","Sample County D","MN",2509.68,22065.107,1656.389,0.6,0.5],[31,7,"CORN","27001","Sample County D","MN",30310.4,1037919.027,41525.248,0.6,0.5],[32,7,"SOYB","27001","Sample County D","MN",25524.6,662082.599,33079.882,0.6,0.5],[33,7,"PAST","27001","Sample County D","MN",9571.7,53381.371,3206.52,0.6,0.5],[34,7,"FRSD","27001","Sample County D","MN",7976.4,19079.549,957.168,0.6,0.5],[35,7,"URML","27001","Sample County D","MN",6381.1,39581.963,2973.593,0.6,0.5],[36,8,"CORN","27001","Sample County D","MN",16596.1,463529.073,18537.844,0.6,0.5],[37,8,"SOYB","27001","Sample County D","MN",13975.6,222771.064,11124.578,0.6,0.5],[38,8,"PAST","27001","Sample County D","MN",5240.9,23442.546,1404.561,0.6,0.5],[39,8,"FRSD","27001","Sample County D","MN",4367.4,7075.188,353.759,0.6,0.5],[40,8,"URML","27001","Sample County D","MN",3493.9,25816.427,1935.621,0.6,0.5],[41,9,"CORN","27003","Sample County E","MN",15536.16,456405.772,18270.524,0.6,0.5],[41,9,"CORN","55001","Sample County F","WI",10357.44,304270.515,12180.349,0.6,0.5],[42,9,"SOYB","27003","Sample County E","MN",13083.06,257134.461,12860.648,0.6,0.5],[42,9,"SOYB","55001","Sample County F","WI",8722.04,171422.974,8573.765,0.6,0.5],[43,9,"PAST","27003","Sample County E","MN",4906.14,21587.016,1295.221,0.6,0.5],[43,9,"PAST","55001","Sample County F","WI",3270.76,14391.344,863.481,0.6,0.5],[44,9,"FRSD","27003","Sample County E","MN",4088.46,7490.059,376.138,0.6,0.5],[44,9,"FRSD","55001","Sample County F","WI",2725.64,4993.372,250.759,0.6,0.5],[45,9,"URML","27003","Sample County E","MN",3270.78,35193.593,2636.249,0.6,0.5],[45,9,"URML","55001","Sample County F","WI",2180.52,23462.395,1757.499,0.6,0.5],[46,10,"CORN","27003","Sample County E","MN",26175.2,891605.838,35650.622,0.6,0.5],[47,10,"SOYB","27003","Sample County E","MN",22042.3,377121.711,18868.209,0.6,0.5],[48,10,"PAST","27003","Sample County E","MN",8265.9,50091.354,3008.788,0.6,0.5],[49,10,"FRSD","27003","Sample County E","MN",6888.2,11709.94,592.385,0.6,0.5],[50,10,"URML","27003","Sample County E","MN",5510.6,43583.335,3273.296,0.6,0.5],[51,11,"CORN","55001","Sample County F","WI",33961.1,1176955.882,47070.085,0.6,0.5],[52,11,"SOYB","55001","Sample County F","WI",28598.8,630346.151,31515.878,0.6,0.5],[53,11,"PAST","55001","Sample County F","WI",10724.6,63489.632,3807.233,0.6,0.5],[54,11,"FRSD","55001","Sample County F","WI",8937.1,22959.41,1152.886,0.6,0.5],[55,11,"URML","55001","Sample County F","WI",7149.7,71039.419,5326.526,0.6,0.5],[56,12,"CORN","55001","Sample County F","WI",9973.38,229317.926,9175.51,0.6,0.5],[56,12,"CORN","19001","Sample County A","IA",6648.92,152878.618,6117.006,0.6,0.5],[57,12,"SOYB","55001","Sample County F","WI",8398.62,159187.443,7961.892,0.6,0.5],[57,12,"SOYB","19001","Sample County A","IA",5599.08,106124.962,5307.928,0.6,0.5],[58,12,"PAST","55001","Sample County F","WI",3149.46,14446.573,869.251,0.6,0.5],[58,12,"PAST","19001","Sample County A","IA",2099.64,9631.049,579.501,0.6,0.5],[59,12,"FRSD","55001","Sample County F","WI",2624.58,4621.885,230.963,0.6,0.5],[59,12,"FRSD","19001","Sample County A","IA",1749.72,3081.257,153.975,0.6,0.5],[60,12,"URML","55001","Sample County F","WI",2099.64,22659.315,1700.708,0.6,0.5],[60,12,"URML","19001","Sample County A","IA",1399.76,15106.21,1133.806,0.6,0.5]],"outlet":{"reach":12,"years":[2015,2016,2017,2018,2019],"tn_kg_yr":9447686.0,"tp_kg_yr":357818.0,"may_nox_kg":1156400.2436000002},"practices":[{"id":"n_rate_mrtn","name":"N rate at MRTN","tn_eff":0.1,"tp_eff":0.0,"eligible_lulc":["CORN","CSIL"],"cost_usd_ha":-15.0,"source":"Iowa NRS science assessment (rounded, placeholder)"},{"id":"spring_n","name":"Spring instead of fall N","tn_eff":0.06,"tp_eff":0.0,"eligible_lulc":["CORN","CSIL"],"cost_usd_ha":10.0,"source":"Iowa NRS science assessment (rounded, placeholder)"},{"id":"cover_crop","name":"Cereal rye cover crop","tn_eff":0.31,"tp_eff":0.29,"eligible_lulc":["CORN","SOYB","CSIL","AGRR","AGRC","WWHT"],"cost_usd_ha":72.0,"source":"Iowa NRS science assessment (rounded, placeholder)"},{"id":"cons_tillage","name":"Conservation tillage","tn_eff":0.0,"tp_eff":0.33,"eligible_lulc":["CORN","SOYB","CSIL","AGRR","AGRC","WWHT"],"cost_usd_ha":0.0,"source":"Iowa NRS science assessment (rounded, placeholder)"},{"id":"bioreactor","name":"Denitrifying bioreactor (tiled land)","tn_eff":0.43,"tp_eff":0.0,"eligible_lulc":["CORN","SOYB","CSIL","AGRR","AGRC","WWHT"],"cost_usd_ha":20.0,"source":"Iowa NRS science assessment (rounded, placeholder)"},{"id":"saturated_buffer","name":"Saturated buffer (tiled land)","tn_eff":0.5,"tp_eff":0.0,"eligible_lulc":["CORN","SOYB","CSIL","AGRR","AGRC","WWHT"],"cost_usd_ha":6.0,"source":"Iowa NRS science assessment (rounded, placeholder)"},{"id":"wetland","name":"Targeted N-removal wetland","tn_eff":0.52,"tp_eff":0.0,"eligible_lulc":["CORN","SOYB","CSIL","AGRR","AGRC","WWHT"],"cost_usd_ha":25.0,"source":"Iowa NRS science assessment (rounded, placeholder)"},{"id":"riparian_buffer","name":"Riparian buffer","tn_eff":0.91,"tp_eff":0.58,"eligible_lulc":["CORN","SOYB","CSIL","AGRR","AGRC","WWHT","PAST","HAY"],"cost_usd_ha":12.0,"source":"Iowa NRS science assessment (rounded, placeholder)"},{"id":"perennial","name":"Perennial cover / land retirement","tn_eff":0.85,"tp_eff":0.75,"eligible_lulc":["CORN","SOYB","CSIL","AGRR","AGRC","WWHT"],"cost_usd_ha":500.0,"source":"Iowa NRS science assessment (rounded, placeholder)"}],"may_ts":[[2015,1,227530],[2015,2,303377],[2015,3,758438],[2015,4,1137702],[2015,5,1289315],[2015,6,1137702],[2015,7,682601],[2015,8,379224],[2015,9,303377],[2015,10,379224],[2015,11,530907],[2015,12,455061],[2016,1,173756],[2016,2,231665],[2016,3,579168],[2016,4,868762],[2016,5,984590],[2016,6,868762],[2016,7,521259],[2016,8,289584],[2016,9,231665],[2016,10,289584],[2016,11,405422],[2016,12,347503],[2017,1,206383],[2017,2,275174],[2017,3,687929],[2017,4,1031864],[2017,5,1169486],[2017,6,1031864],[2017,7,619138],[2017,8,343965],[2017,9,275174],[2017,10,343965],[2017,11,481546],[2017,12,412755],[2018,1,181502],[2018,2,242002],[2018,3,605006],[2018,4,907519],[2018,5,1028520],[2018,6,907519],[2018,7,544505],[2018,8,302503],[2018,9,242002],[2018,10,302503],[2018,11,423504],[2018,12,363003],[2019,1,231192],[2019,2,308253],[2019,3,770626],[2019,4,1155909],[2019,5,1310091],[2019,6,1155909],[2019,7,693566],[2019,8,385313],[2019,9,308253],[2019,10,385313],[2019,11,539434],[2019,12,462374]]};
+const C = Object.fromEntries(D.cols.map((c,i)=>[c,i]));
+const U = D.units.map(r=>Object.fromEntries(D.cols.map((c,i)=>[c,r[i]])));
+const COUNTIES = [...new Map(U.map(u=>[u.county_fips,{fips:u.county_fips,name:u.county_name,state:u.state}])).values()];
+const state = Object.fromEntries(D.practices.map(p=>[p.id,{on:false,adoption:0.3,counties:new Set()}]));
+
+const PRESETS = {
+  "Baseline": {},
+  "Cover crops + MRTN": {cover_crop:[0.4],n_rate_mrtn:[0.8]},
+  "Iowa NRS-style mix": {n_rate_mrtn:[0.8],cover_crop:[0.5],bioreactor:[0.3],wetland:[0.3],cons_tillage:[0.6]},
+  "Targeted wetlands": {wetland:[0.6,["19001","19003"]]},
+};
+
+const fmt = (x,d=0)=>x.toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:d});
+const t = kg=>fmt(kg/1000,0);
+
+function buildUI(){
+  const pr = document.getElementById("presets");
+  for(const name of Object.keys(PRESETS)){
+    const b=document.createElement("button"); b.textContent=name; b.type="button";
+    b.onclick=()=>applyPreset(name); pr.appendChild(b);
+  }
+  const box=document.getElementById("practices");
+  for(const p of D.practices){
+    const d=document.createElement("div"); d.className="prac off"; d.id="pr-"+p.id;
+    d.innerHTML=`<div class="prac-top"><input type="checkbox" id="on-${p.id}"><label for="on-${p.id}">${p.name}</label>
+      <span class="eff">N −${Math.round(p.tn_eff*100)}% · P −${Math.round(p.tp_eff*100)}%</span></div>
+      <div class="slider"><input type="range" id="ad-${p.id}" min="0" max="100" step="5" value="30" aria-label="${p.name} adoption"><output id="ao-${p.id}">30%</output></div>
+      <div class="hint">Applies to ${p.eligible_lulc.join(", ")} · $${fmt(p.cost_usd_ha)}/ha/yr. Counties (none selected = all):</div>
+      <div class="chips" id="ch-${p.id}"></div>`;
+    box.appendChild(d);
+    const ch=d.querySelector(".chips");
+    for(const c of COUNTIES){
+      const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=`${c.name.replace("Sample County ","Co. ")} ${c.state}`;
+      b.setAttribute("aria-pressed","false"); b.dataset.fips=c.fips;
+      b.onclick=()=>{const s=state[p.id].counties; s.has(c.fips)?s.delete(c.fips):s.add(c.fips); sync(); run();};
+      ch.appendChild(b);
+    }
+    d.querySelector(`#on-${p.id}`).onchange=e=>{state[p.id].on=e.target.checked; sync(); run();};
+    d.querySelector(`#ad-${p.id}`).oninput=e=>{state[p.id].adoption=e.target.value/100; sync(); run();};
+  }
+  for(const id of ["p-area","p-share","p-el"]) document.getElementById(id).oninput=run;
+  document.getElementById("reach").textContent=D.outlet.reach;
+}
+
+function applyPreset(name){
+  for(const id in state){state[id].on=false; state[id].adoption=0.3; state[id].counties=new Set();}
+  for(const [id,[a,cs]] of Object.entries(PRESETS[name])){state[id].on=true; state[id].adoption=a; if(cs) state[id].counties=new Set(cs);}
+  sync(); run();
+}
+
+function sync(){
+  for(const p of D.practices){
+    const s=state[p.id], d=document.getElementById("pr-"+p.id);
+    d.classList.toggle("off",!s.on);
+    d.querySelector(`#on-${p.id}`).checked=s.on;
+    d.querySelector(`#ad-${p.id}`).value=Math.round(s.adoption*100);
+    d.querySelector(`#ao-${p.id}`).textContent=Math.round(s.adoption*100)+"%";
+    d.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",s.counties.has(b.dataset.fips)));
+  }
+}
+
+// Same math as basin/scenario.py: multiplicative stacking, delivery ratio to the outlet.
+function compute(){
+  const rows=U.map(u=>({...u,fn:1,fp:1,cost:0}));
+  for(const p of D.practices){
+    const s=state[p.id]; if(!s.on||s.adoption===0) continue;
+    for(const r of rows){
+      if(!p.eligible_lulc.includes(r.lulc)) continue;
+      if(s.counties.size && !s.counties.has(r.county_fips)) continue;
+      r.fn*=1-s.adoption*p.tn_eff; r.fp*=1-s.adoption*p.tp_eff; r.cost+=r.area_ha*s.adoption*p.cost_usd_ha;
+    }
+  }
+  for(const r of rows){r.tn_s=r.tn_kg*r.fn; r.tp_s=r.tp_kg*r.fp; r.dn=(r.tn_kg-r.tn_s)*r.dr_n; r.dp=(r.tp_kg-r.tp_s)*r.dr_p;}
+  return rows;
+}
+function group(rows,key){
+  const m=new Map();
+  for(const r of rows){const k=key(r); const g=m.get(k)||{k,area:0,tn:0,tns:0,tp:0,tps:0,cost:0}; g.area+=r.area_ha; g.tn+=r.tn_kg; g.tns+=r.tn_s; g.tp+=r.tp_kg; g.tps+=r.tp_s; g.cost+=r.cost; m.set(k,g);}
+  return [...m.values()];
+}
+const pct=(b,s)=>b?100*(b-s)/b:0;
+
+function run(){
+  const rows=compute(), o=D.outlet;
+  const dn=rows.reduce((a,r)=>a+r.dn,0), dp=rows.reduce((a,r)=>a+r.dp,0), cost=rows.reduce((a,r)=>a+r.cost,0);
+  const tnS=o.tn_kg_yr-dn, tpS=o.tp_kg_yr-dp, f=tnS/o.tn_kg_yr;
+  const ref=+document.getElementById("p-area").value||0, share=+document.getElementById("p-share").value||0, el=+document.getElementById("p-el").value||0;
+  const dU=f-1, dM=share*dU, area=Math.max(0,ref*(1+el*dM));
+  const risk=area<=5000?"low":area<=10000?"moderate":area<=15000?"high":"severe";
+  const tnRed=pct(o.tn_kg_yr,tnS), prog=Math.min(100,tnRed/45*100);
+  document.getElementById("kpis").innerHTML=`
+    <div class="kpi"><span class="k">Outlet TN reduction</span><span class="v">${fmt(tnRed,1)}%</span><span class="d">${t(o.tn_kg_yr)} → ${t(tnS)} t/yr</span></div>
+    <div class="kpi"><span class="k">Outlet TP reduction</span><span class="v">${fmt(pct(o.tp_kg_yr,tpS),1)}%</span><span class="d">${t(o.tp_kg_yr)} → ${t(tpS)} t/yr</span></div>
+    <div class="kpi"><span class="k">Progress to 45% goal</span><span class="v">${fmt(prog,0)}%</span><div class="meter"><i style="width:${prog}%"></i></div></div>
+    <div class="kpi"><span class="k">Gulf hypoxic area</span><span class="v">${fmt(area,0)} km²</span><span class="d"><span class="pill risk-${risk}">${risk}</span> goal 5,000 km²</span></div>
+    <div class="kpi"><span class="k">Cost per kg N delivered</span><span class="v">${dn>0?"$"+fmt(cost/dn,2):"—"}</span><span class="d">$${fmt(cost/1e6,1)}M per year</span></div>`;
+
+  const cs=group(rows,r=>r.county_fips).sort((a,b)=>b.tn-a.tn), maxC=Math.max(...cs.map(g=>pct(g.tn,g.tns)),1);
+  const cname=f=>{const c=COUNTIES.find(c=>c.fips===f); return `${c.name}, ${c.state} <span class="hint">${f}</span>`;};
+  document.getElementById("county").innerHTML=`<tr><th>County</th><th>Baseline TN t/yr</th><th>Scenario TN t/yr</th><th>TN yield kg/ha</th><th>TP cut</th><th>TN cut</th><th></th></tr>`+
+    cs.map(g=>{const p=pct(g.tn,g.tns);return `<tr><td>${cname(g.k)}</td><td>${t(g.tn)}</td><td>${t(g.tns)}</td><td>${fmt(g.tn/g.area,1)}</td><td>${fmt(pct(g.tp,g.tps),1)}%</td><td>${fmt(p,1)}%</td><td class="bar"><div class="hbar"><i style="width:${p/maxC*100}%"></i></div></td></tr>`}).join("");
+
+  const ss=group(rows,r=>r.sub).sort((a,b)=>a.k-b.k), maxS=Math.max(...ss.map(g=>pct(g.tn,g.tns)),1);
+  document.getElementById("subbasin").innerHTML=`<tr><th>Subbasin</th><th>Area km²</th><th>Baseline TN t/yr</th><th>TN yield kg/ha</th><th>TP cut</th><th>TN cut</th><th></th></tr>`+
+    ss.map(g=>{const p=pct(g.tn,g.tns);return `<tr><td>${g.k}</td><td>${fmt(g.area/100)}</td><td>${t(g.tn)}</td><td>${fmt(g.tn/g.area,1)}</td><td>${fmt(pct(g.tp,g.tps),1)}%</td><td>${fmt(p,1)}%</td><td class="bar"><div class="hbar"><i style="width:${p/maxS*100}%"></i></div></td></tr>`}).join("");
+
+  drawTS(f);
+}
+
+function drawTS(f){
+  const ts=D.may_ts, W=720,H=200,L=44,R=10,T=10,B=26;
+  const max=Math.max(...ts.map(d=>d[2]))/1000, yMax=Math.ceil(max/500)*500;
+  const x=i=>L+i*(W-L-R)/(ts.length-1), y=v=>T+(H-T-B)*(1-v/yMax);
+  const line=k=>ts.map((d,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(d[2]/1000*k).toFixed(1)}`).join("");
+  let g="";
+  for(let v=0;v<=yMax;v+=yMax/4){g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end">${fmt(v)}</text>`;}
+  ts.forEach((d,i)=>{ if(d[1]===1) g+=`<text x="${x(i)}" y="${H-8}">${d[0]}</text>`;
+    if(d[1]===5) g+=`<rect x="${x(i)-3}" y="${T}" width="6" height="${H-T-B}" fill="var(--accent-soft)"/>`;});
+  g+=`<path d="${line(1)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  g+=`<path d="${line(f)}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  document.getElementById("ts").innerHTML=g;
+}
+
+buildUI(); applyPreset("Cover crops + MRTN");
+</script>
